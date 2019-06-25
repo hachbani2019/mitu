@@ -1,0 +1,10 @@
+<launch>
+
+<node pkg="stereo_image_proc" type="stereo_image_proc" name='' respawn="true">
+    <remap from="left/image_raw" to="/mitu/left_camera/image_raw"/>
+    <remap from="left/camera_info" to="/mitu/left_camera/camera_info"/>
+    <remap from="right/image_raw" to="/mitu/right_camera/image_raw"/>
+    <remap from="right/camera_info" to="/mitu/right_camera/camera_info"/>
+</node>
+
+</launch>

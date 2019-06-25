@@ -1,0 +1,729 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="prius">
+ 
+	<!-- Wheel properties -->
+	<xacro:property name="wheel_radius" value="0.2675"/>	
+	<xacro:property name="wheel_width" value="0.165"/>	
+	<xacro:property name="wheel_mass" value="30"/>
+	<xacro:property name="wheel_base" value="0.95"/>
+	
+	<xacro:property name="sphere_radius" value="0.215"/>
+	<xacro:property name="sphere_mass" value="15"/>
+	<xacro:property name="sphere_axle" value="0.95"/>
+	<xacro:property name="sphere_inertia_moment" value="${2*sphere_mass*sphere_radius*sphere_radius/5}"/>
+	
+	
+	<!-- Inertia Box Macro -->
+	<xacro:macro name="box_inertial" params="mass width length height">
+		<inertial>
+			<mass value="${mass}" />
+			<inertia ixx="${mass*((height*height)+(length*length))/3}" ixy="${mass*width*length/4}"  ixz="${mass*width*height/4}" 
+			         iyy="${mass*((width*width)+(height*height))/3}"   iyz="${mass*length*height/4}" 
+			         izz="${mass*((width*width)+(length*length))/3}" />
+		</inertial>
+	</xacro:macro>
+	
+	<!-- Inertia Wheel Macro -->
+	<xacro:macro name="wheel_inertial" params="mass wheelRadius wheelWidth">
+		<inertial>
+			<mass value="${mass}" />
+			<inertia ixx="${(mass/4)*(wheelRadius*wheelRadius+(wheelWidth*wheelWidth/3))}" ixy="0.0" ixz="0.0" 
+			         iyy="${(mass/4)*(wheelRadius*wheelRadius+(wheelWidth*wheelWidth/3))}" iyz="0.0" 
+				   		 izz="${.5*mass*wheelRadius*wheelRadius}" />
+		</inertial>
+	</xacro:macro>
+	
+	<!-- Inertia Sphere Macro -->
+	<xacro:macro name="sphere_inertial" params="mass sphereRadius">
+		<inertial>
+			<mass value="${mass}"/>
+			<inertia ixx="${sphere_inertia_moment}" ixy="${sphere_inertia_moment}" ixz="${sphere_inertia_moment}" 
+			         iyy="${sphere_inertia_moment}" iyz="${sphere_inertia_moment}" 
+				   		 izz="${sphere_inertia_moment}" />
+		</inertial>
+	</xacro:macro>
+	
+	<!-- 
+	FRAME TREE 
+			base_link
+					|__chassis
+								|__left_wheel
+								|__right_wheel
+								|__front_sphere
+								|__front_laser
+								|__imu
+	-->
+	
+	<!-- Links Definition -->
+	<link name="base_link">
+	</link>
+	
+  <link name="chassis">
+    <visual>
+    	<origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="file://$(arg meshDirectory)mitu_centered.dae" scale="1 1 1"/>
+      </geometry>
+    </visual>
+    
+    <collision>
+      <origin xyz="0 0 0" rpy="1.57 0 0"/>
+      <geometry>
+        <mesh filename="file://$(arg meshDirectory)mitu_centered.obj" scale="1 1 1"/>
+      </geometry>
+      <surface>
+  			<friction>
+  				<ode>
+  					<mu>0.00</mu>
+  					<mu2>0.00</mu2>
+  				</ode>
+  			</friction>
+  		</surface>
+    </collision>
+    <xacro:box_inertial mass="280" width="1" length="1.5" height="2"/>
+  </link>
+  
+  
+  <!-- wheel.obj: cylinder with radius=1m and length=1m-->
+  <link name="/mitu/left_wheel">
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="file://$(arg meshDirectory)wheel.obj" scale="${wheel_width} ${wheel_radius} ${wheel_radius}"/>
+      </geometry>
+		</visual>
+		<collision>
+			<origin xyz="0 0 0" rpy="1.57 0 1.57"/>
+      <geometry>
+				<cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+      <surface>
+      	<friction>
+  				<ode>
+  					<mu>1</mu>
+  					<mu2>1</mu2>
+  					<slip1>0.0001</slip1>
+  					<slip2>0.0001</slip2>
+  				</ode>
+  			</friction>
+      </surface>
+		</collision>
+		<xacro:wheel_inertial mass="${wheel_mass}" wheelRadius="${wheel_radius}" wheelWidth="${wheel_width}"/>
+  </link>
+  
+  <link name="/mitu/right_wheel">
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="file://$(arg meshDirectory)wheel.obj" scale="${wheel_width} ${wheel_radius} ${wheel_radius}"/>
+      </geometry>
+		</visual>
+		<collision>
+			<origin xyz="0 0 0" rpy="1.57 0 1.57"/>
+      <geometry>
+				<cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+      <surface>
+      	<friction>
+  				<ode>
+  					<mu>1</mu>
+  					<mu2>1</mu2>
+  					<slip1>0.0001</slip1>
+  					<slip2>0.0001</slip2>
+  				</ode>
+  			</friction>
+      </surface>
+		</collision>
+		<xacro:wheel_inertial mass="${wheel_mass}" wheelRadius="${wheel_radius}" wheelWidth="${wheel_width}"/>
+  </link>
+  
+  
+  <link name="/mitu/front_sphere">
+  	<visual name="front_sphere_visual">
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+         <mesh filename="file://$(arg meshDirectory)sphere.obj" scale="${sphere_radius} ${sphere_radius} ${sphere_radius}"/>
+      </geometry>
+    </visual>
+		<collision name="front_sphere_collision">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+	      <mesh filename="file://$(arg meshDirectory)sphere.obj" scale="${sphere_radius} ${sphere_radius} ${sphere_radius}"/>
+  		</geometry>
+  		<surface>
+  			<friction>
+  				<ode>
+  					<mu>0</mu>
+  					<mu2>0</mu2>
+  				</ode>
+  			</friction>
+  		</surface>
+    </collision>
+  	<xacro:sphere_inertial mass="${sphere_mass}" sphereRadius="${sphere_radius}"/>
+  </link>
+  
+  
+  <!-- Joint Definitions -->
+  <joint name="chassis_joint" type="fixed">
+		<parent link="base_link"/>
+		<child link="chassis"/>
+		<origin xyz="${sphere_axle/2} 0 ${wheel_radius}" rpy="0 0 0"/>
+  </joint>
+	
+	<joint name="left_wheel_joint" type="continuous">
+		<parent link="chassis"/>
+		<child link="/mitu/left_wheel"/>
+		<origin xyz="${-sphere_axle/2} ${wheel_base/2} 0" rpy="0 0 1.57"/>
+		<axis xyz="1 0 0"/>
+	</joint>
+	
+	<joint name="right_wheel_joint" type="continuous">
+		<parent link="chassis"/>
+		<child link="/mitu/right_wheel"/>
+		<origin xyz="${-sphere_axle/2} ${-wheel_base/2} 0" rpy="0 0 1.57"/>
+		<axis xyz="1 0 0"/>
+	</joint>
+	
+	<joint name="sphere_joint" type="continuous">
+		<parent link="chassis"/>
+		<child link="/mitu/front_sphere"/>
+		<origin xyz="${sphere_axle/2} 0 ${sphere_radius-wheel_radius}" rpy="0 0 0"/>
+		<axis xyz="1 1 1"/>
+	</joint>
+  
+  
+  <!-- LIDAR SENSOR -->
+  <link name="/mitu/front_laser">
+  	<collision>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<box size="0.1 0.1 0.2"/>
+			</geometry>
+		</collision>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<box size="0.1 0.1 0.2"/>
+			</geometry>
+		</visual>
+    <xacro:box_inertial mass="1" width="0.1" length="0.1" height="0.2"/>
+  </link>
+  
+  <joint name="front_laser_joint" type="fixed">
+    <parent link="chassis"/>
+    <child link="/mitu/front_laser"/>
+    <origin xyz="${0.3+(sphere_axle/2)} 0 0.35" rpy="0 0 0"/>
+		
+  </joint>
+  
+	<gazebo reference="/mitu/front_laser">
+		<sensor name='front_laser_sensor' type='ray'>
+			<ray>
+				<scan>
+					<horizontal>
+					<samples>1080</samples>
+					<resolution>1</resolution>
+					<min_angle>-1.90</min_angle>
+					<max_angle>1.90</max_angle>
+					</horizontal>
+					<!--<vertical>
+					<samples>16</samples>
+					<min_angle>-0.1</min_angle>
+					<max_angle>-0.35</max_angle>
+					</vertical>-->
+				</scan>
+				<range>
+					<min>0.2</min>
+					<max>22</max>
+					<resolution>0.02</resolution>
+				</range>
+			</ray>
+			<plugin name='front_laser' filename='libgazebo_ros_laser.so'>
+				<robotNamespace>/mitu</robotNamespace>
+				<topicName>/front_scan</topicName>
+				<frameName>front_laser</frameName>
+			</plugin>
+			<always_on>1</always_on>
+			<update_rate>25</update_rate>
+			<visualize>0</visualize>
+		</sensor>
+	</gazebo>
+
+	<!-- BACK LIDAR SENSOR -->
+  <link name="/mitu/back_laser">
+  	<collision>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<box size="0.1 0.1 0.2"/>
+			</geometry>
+		</collision>
+
+		<visual>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<box size="0.1 0.1 0.2"/>
+			</geometry>
+		</visual>
+    <xacro:box_inertial mass="1" width="0.1" length="0.1" height="0.2"/>
+  </link>
+  
+  <joint name="back_laser_joint" type="fixed">
+    <parent link="chassis"/>
+    <child link="/mitu/back_laser"/>
+    <origin xyz="${-sphere_axle/2-0.1/2} 0 0.5" rpy="0 0 3.141592"/>  <!--Origin of the Lidar-->
+	</joint>
+  
+	<gazebo reference="/mitu/back_laser">
+		<sensor name='back_laser_sensor' type='ray'>
+			<ray>
+				<scan>
+					<horizontal>
+					<samples>1080</samples>
+					<resolution>1</resolution>
+					<min_angle>-1.90</min_angle>
+					<max_angle>1.90</max_angle>
+					</horizontal>
+					<!--<vertical>
+					<samples>16</samples>
+					<min_angle>-0.1</min_angle>
+					<max_angle>-0.35</max_angle>
+					</vertical>-->
+				</scan>
+				<range>
+					<min>0.2</min>
+					<max>22</max>
+					<resolution>0.02</resolution>
+				</range>
+			</ray>
+			<plugin name='back_laser' filename='libgazebo_ros_laser.so'>
+				<robotNamespace>/mitu</robotNamespace>
+				<topicName>/back_scan</topicName>
+				<frameName>back_laser</frameName>
+			</plugin>
+			<always_on>1</always_on>
+			<update_rate>25</update_rate>
+			<visualize>0</visualize>
+		</sensor>
+	</gazebo>
+	
+	<!--left camera-->
+	<xacro:property name="cameraSize" value="0.05"/>
+	<xacro:property name="cameraMass" value="0.1"/>
+  <link name="left_camera">
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="${cameraSize} ${cameraSize} ${cameraSize}"/>
+      </geometry>
+    </collision>
+
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="${cameraSize} ${cameraSize} ${cameraSize}"/>
+      </geometry>
+      <material name="green"/>
+    </visual>
+
+    <inertial>
+      <mass value="${cameraMass}" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <box_inertia m="${cameraMass}" x="${cameraSize}" y="${cameraSize}" z="${cameraSize}" />
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+    </inertial>
+  </link>
+
+  <joint name="left_camera_joint" type="fixed">
+    <axis xyz="0 1 0" />
+    <origin xyz="${0.1+(sphere_axle/2)} 0.15 1.1" rpy="0 0 0"/>
+    <parent link="chassis"/>
+    <child link="left_camera"/>
+  </joint>
+
+	<gazebo reference="left_camera"> 
+    <sensor type="camera" name="left_camera">
+      <update_rate>30.0</update_rate>
+      <camera name="head">
+        <horizontal_fov>1.3962634</horizontal_fov>
+        <image>
+          <width>800</width>
+          <height>800</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.02</near>
+          <far>300</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <!-- Noise is sampled independently per pixel on each frame.
+               That pixel's noise value is added to each of its color
+               channels, which at that point lie in the range [0,1]. -->
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+        <alwaysOn>true</alwaysOn>
+        <updateRate>0.0</updateRate>
+        <cameraName>mitu/left_camera</cameraName>
+        <imageTopicName>left_camera_image_raw</imageTopicName>
+        <cameraInfoTopicName>left_camera_info</cameraInfoTopicName>
+        <frameName>left_camera</frameName>
+        <hackBaseline>0.07</hackBaseline>
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+        <distortionT2>0.0</distortionT2>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+
+	<!--right camera-->
+
+  <link name="right_camera">
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="${cameraSize} ${cameraSize} ${cameraSize}"/>
+      </geometry>
+    </collision>
+
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="${cameraSize} ${cameraSize} ${cameraSize}"/>
+      </geometry>
+      <material name="green"/>
+    </visual>
+
+    <inertial>
+      <mass value="${cameraMass}" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <box_inertia m="${cameraMass}" x="${cameraSize}" y="${cameraSize}" z="${cameraSize}" />
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+    </inertial>
+  </link>
+
+  <joint name="right_camera_joint" type="fixed">
+    <axis xyz="0 1 0" />
+    <origin xyz="${0.1+(sphere_axle/2)} -0.15 1.1" rpy="0 0 0"/>
+    <parent link="chassis"/>
+    <child link="right_camera"/>
+  </joint>
+
+<gazebo reference="camera2"> 
+    <sensor type="camera" name="camera2">
+      <update_rate>30.0</update_rate>
+      <camera name="head">
+        <horizontal_fov>1.3962634</horizontal_fov>
+        <image>
+          <width>800</width>
+          <height>800</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.02</near>
+          <far>300</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <!-- Noise is sampled independently per pixel on each frame.
+               That pixel's noise value is added to each of its color
+               channels, which at that point lie in the range [0,1]. -->
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+        <alwaysOn>true</alwaysOn>
+        <updateRate>0.0</updateRate>
+        <cameraName>mitu/right_camera</cameraName>
+        <imageTopicName>right_camera_image_raw</imageTopicName>
+        <cameraInfoTopicName>right_camera_info</cameraInfoTopicName>
+        <frameName>camera2</frameName>
+        <hackBaseline>0.07</hackBaseline>
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+        <distortionT2>0.0</distortionT2>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+
+
+
+
+
+  <!-- NO CAMERA FOR NOW -->
+  <!--
+  <link name="front_camera_link">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+  </link>
+  <joint name="front_camera_joint" type="fixed">
+    <parent link="chassis"/>
+    <child link="front_camera_link"/>
+    <origin xyz="0 -0.4 1.4" rpy="0 0.05 -1.5707"/>
+  </joint>
+
+  <link name="back_camera_link">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+  </link>
+  <joint name="back_camera_joint" type="fixed">
+    <parent link="chassis"/>
+    <child link="back_camera_link"/>
+    <origin xyz="0 1.45 1.4" rpy="0 0.05 1.5707"/>
+  </joint>
+  
+  <gazebo reference="front_camera_link">
+    <sensor type="camera" name="front_camera_sensor">
+      <update_rate>30.0</update_rate>
+      <camera name="front_camera">
+        <horizontal_fov>1.3962634</horizontal_fov>
+        <image>
+          <width>800</width>
+          <height>800</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near
+
+          <far>
+
+        </clip>
+
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="front_camera_controller" filename="libgazebo_ros_camera.so">
+        <robotNamespace>mitu</robotNamespace>
+        <alwaysOn>false</alwaysOn>
+        <updateRate>0.0</updateRate>
+        <cameraName>/prius/front_camera</cameraName>
+        <imageTopicName>image_raw</imageTopicName>
+        <cameraInfoTopicName>/prius/front_camera_info</cameraInfoTopicName>
+        <frameName>camera_link</frameName>
+        <hackBaseline>0.07</hackBaseline>
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+
+        <distortionT2>0.0</distortionT2>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <gazebo reference="back_camera_link">
+    <sensor type="camera" name="back_camera_sensor">
+      <update_rate>30.0</update_rate>
+      <camera name="back_camera">
+        <horizontal_fov>1.3962634</horizontal_fov>
+        <image>
+          <width>800</width>
+          <height>800</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.02</near>
+          <far>300</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="back_camera_controller" filename="libgazebo_ros_camera.so">
+        <robotNamespace>mitu</robotNamespace>
+        <alwaysOn>false</alwaysOn>
+        <updateRate>0.0</updateRate>
+        <cameraName>/prius/back_camera</cameraName>
+        <imageTopicName>image_raw</imageTopicName>
+        <cameraInfoTopicName>/prius/back_camera_info</cameraInfoTopicName>
+        <frameName>camera_link</frameName>
+        <hackBaseline>0.07</hackBaseline>
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+        <distortionT2>0.0</distortionT2>
+      </plugin>
+
+    </sensor>
+  </gazebo>
+	-->
+	
+	<!-- US Sonar Macro -->
+	<xacro:macro name="us_sensor" params="suffix x y z roll pitch yaw">
+		<link name="/mitu/us_${suffix}_link">
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0"/>
+				<geometry>
+					<box size="0.01 0.01 0.01"/>
+				</geometry>
+			</collision>
+
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 0"/>
+				<geometry>
+					<box size="0.01 0.01 0.01"/>
+				</geometry>
+			</visual>
+
+			<inertial>
+				<mass value="1e-5" />
+				<origin xyz="0 0 0" rpy="0 0 0"/>
+				<inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+			</inertial>
+		</link>
+		
+		<joint name="us_${suffix}_joint" type="fixed">
+			<axis xyz="0 0 0" rpy="0 0 0" />
+			<parent link="chassis"/>
+			<child link="us_${suffix}_link"/>
+			<origin xyz="${x} ${y} ${z}" rpy="${roll} ${pitch} ${yaw}"/>
+		</joint>
+		
+		<xacro:property name="topic_us" value="us_${suffix}_range" />
+		<xacro:property name="frame_us" value="/mitu/us_${suffix}_link" />		
+		
+		<!-- US Sensor gazebo plugins -->
+		<gazebo reference="${frame_us}">
+		  <sensor name='us_${suffix}_sensor' type='ray'>
+		    <update_rate>5</update_rate>
+		    <visualize>0</visualize>
+		    <ray>
+		      <scan>
+		        <horizontal>
+		          <samples>1</samples>
+		          <resolution>1</resolution>
+		          <min_angle>0</min_angle>
+		          <max_angle>0</max_angle>
+		        </horizontal>
+		        <vertical>
+		          <samples>1</samples>
+		          <resolution>1</resolution>
+		          <min_angle>0</min_angle>
+		          <max_angle>0</max_angle>
+		        </vertical>
+		      </scan>
+		      <range>
+		        <min>0.2</min>
+		        <max>5</max>
+		        <resolution>0.1</resolution>
+		      </range>
+		    </ray>
+		    <plugin name='us_${suffix}_sensor' filename='libgazebo_ros_range.so'>
+		      <robotNamespace>/mitu</robotNamespace>
+		      <topicName>${topic_us}</topicName>
+		      <frameName>${frame_us}</frameName>
+		      <alwaysOn>false</alwaysOn>
+		      <gaussianNoise>0.005</gaussianNoise>
+		      <updateRate>1</updateRate>
+		      <fov>0.08</fov>
+		      <radiation>ultrasound</radiation>
+		    </plugin>
+		  </sensor>
+		</gazebo>
+	</xacro:macro>
+	
+	<!-- US Sensors addition / NOT FOR NOW-->
+	<!--
+	<xacro:us_sensor suffix="front_left" x="0.30" y="-0.15" z="0.10" r="0" p="0" yaw="-${pi/6}"/>
+	<xacro:us_sensor suffix="front_right" x="0.30" y="0.15" z="0.10" r="0" p="0" yaw="${pi/6}"/>
+	<xacro:us_sensor suffix="rear_left" x="-0.30" y="-0.15" z="0.10" r="0" p="0" yaw="-${5*pi/6}"/>
+	<xacro:us_sensor suffix="rear_right" x="-0.30" y="0.15" z="0.10" r="0" p="0" yaw="${5*pi/6}"/>
+  -->
+  
+  <!-- IMU Sensor -->
+  <link name="/mitu/imu">
+    <xacro:box_inertial mass="0.3" width="0.1" length="0.15" height="0.05"/>
+    <visual>
+    	<origin xyz="0 0 0" rpy="0 0 0"/>
+				<geometry>
+					<box size="0.1 0.15 0.05"/>
+				</geometry>
+		</visual>
+		<collision>
+			<origin xyz="0 0 0" rpy="0 0 0"/>
+			<geometry>
+				<box size="0.1 0.15 0.05"/>
+			</geometry>
+		</collision>
+  </link>
+  
+  <joint name="imu_joint" type="fixed">
+    <parent link="chassis"/>
+    <child link="/mitu/imu"/>
+    <origin xyz="0.5 0 0.2" rpy="0 0 0"/>
+  </joint>
+  
+  <gazebo>
+  	<plugin name="imu_plugin" filename="libgazebo_ros_imu.so">
+      <robotNamespace>/mitu</robotNamespace>
+      <alwaysOn>true</alwaysOn>
+      <bodyName>chassis</bodyName>
+      <frameName>imu</frameName>
+      <topicName>imu/data</topicName>
+      <serviceName>imu_service</serviceName>
+      <gaussianNoise>0.0</gaussianNoise>
+      <updateRate>25.0</updateRate>
+      <xyzOffset>0 0 0</xyzOffset>
+      <rpyOffset>0 0 0</rpyOffset>
+  	</plugin>
+  </gazebo>
+  
+  
+  <!-- DIFFERENTIAL DRIVE PLUGIN -->
+  <gazebo>
+		<plugin name="differential_drive_controller" filename="libgazebo_ros_diff_drive.so">
+			<robotNamespace>/mitu</robotNamespace>
+			<alwaysOn>true</alwaysOn>
+			<updateRate>25</updateRate>
+			<leftJoint>left_wheel_joint</leftJoint>
+			<rightJoint>right_wheel_joint</rightJoint>
+			<wheelSeparation>${wheel_base}</wheelSeparation>
+			<wheelDiameter>${wheel_radius*2}</wheelDiameter>
+			<torque>400</torque>
+			<commandTopic>/cmd_vel</commandTopic>
+			<odometryTopic>odom</odometryTopic>
+			<odometryFrame>map</odometryFrame><!--map for slam / odom for localization -->
+			<odometrySource>world</odometrySource><!-- 'world' is working / encoder for localization -->	
+			<robotBaseFrame>base_link</robotBaseFrame>
+			<legacyMode>false</legacyMode>
+			<rosDebugLevel>na</rosDebugLevel>
+			<publishWheelTF>true</publishWheelTF><!--true -->
+			<publishWheelJointState>true</publishWheelJointState><!--true -->
+			<wheelAcceleration>2</wheelAcceleration>
+			<wheelTorque>400</wheelTorque>
+			<publishTf>0</publishTf>
+		</plugin>
+	</gazebo>
+
+  <!-- POSE ESTIMATION PLUGIN -->
+  <gazebo>
+    <plugin name="p3d" filename="libgazebo_ros_p3d.so">
+      <robotNamespace>/mitu</robotNamespace>
+      <bodyName>base_link</bodyName>
+      <topicName>base_pose_ground_truth</topicName>
+      <frameName>map</frameName>
+      <updateRate>20.0</updateRate>
+    </plugin>
+  </gazebo>
+
+</robot>
